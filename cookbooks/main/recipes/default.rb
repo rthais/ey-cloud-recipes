@@ -68,3 +68,5 @@ require_recipe "sunspot"
 #require_recipe "mysql_replication_check"
 
 require_recipe "databaseyml"
+
+require_recipe "delayed_job_alternate"
