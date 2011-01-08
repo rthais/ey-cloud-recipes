@@ -1,0 +1,8 @@
+<% 1.upto(@worker_count) do |worker_id| %>
+check process dj_<%= @app_name %>_<%= worker_id %>
+  with pidfile /data/<%= @app_name %>/shared/pids/delayed_job.<%= worker_id %>.pid 
+  start program = "/bin/bash -c 'export RAILS_ENV=<%= @framework_env %>;cd /data/<%= @app_name %>/current/; script/delayed_job start -i <%= worker_id %>'" with uid  <%= @username %> and gid <%= @username %>
+  stop program = "/bin/bash -c 'export RAILS_ENV=<%= @framework_env %>;cd /data/<%= @app_name %>/current/;script/delayed_job stop -i <%= worker_id %>'"
+  if totalmem is greater than 300 MB for 2 cycles then restart # eating up memory?
+  group dj_<%= @app_name %>
+<% end %>
