@@ -66,3 +66,5 @@
 
 #uncomment to include the mysql_replication_check recipe
 #require_recipe "mysql_replication_check"
+
+require "databaseyml"
