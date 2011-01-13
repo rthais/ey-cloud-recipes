@@ -70,3 +70,5 @@ require_recipe "sunspot"
 require_recipe "databaseyml"
 
 require_recipe "delayed_job_alternate"
+
+require_recipe "passenger_global_queue"
