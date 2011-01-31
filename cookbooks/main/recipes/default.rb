@@ -71,4 +71,5 @@ require_recipe "databaseyml"
 
 require_recipe "delayed_job_alternate"
 
-require_recipe "passenger_global_queue"
+# WARNING: not working
+#require_recipe "passenger_global_queue"
