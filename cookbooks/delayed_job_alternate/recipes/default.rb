@@ -3,7 +3,7 @@
 # Recipe:: default
 #
 
-if node[:instance_role] == "app_master"
+if node[:instance_role] == "app_master" || node[:instance_role] == 'solo'
   node[:applications].each do |app_name,data|
   
     # determine the number of workers to run based on instance size
