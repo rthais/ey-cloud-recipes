@@ -1,7 +1,11 @@
 ey-cloud-recipes/sphinx
 ========================
 
-A chef recipe for enabling sphinx on the EY AppCloud.
+an older and deprecated chef recipe for enabling sphinx on Engine Yard's
+AppCloud.  This recipe was originally written for the Legacy Deploy
+method, there are several [other][1] [recipes][2] [out][3] there that may
+work better for you.
+
 
 Dependencies
 ============
@@ -50,6 +54,10 @@ migrations will not have run yet on your application master. If this occurs, sim
 and the recipe should succeed the second time around. This should only occur going forward
 if you set new indexes on fields that are in migrations that have to be run.
 
+Warranty
+========
+This recipe is provided as is, if you have any problems with it please open an issue or make a send a pull request with your fix.
+
 Additional Resources
 ========
 
@@ -57,3 +65,7 @@ You can get additional information on sphinx configuration and setup here:
 
   * [thinking_sphinx](http://freelancing-god.github.com/ts/en/)
   * [ultrasphinx](http://blog.evanweaver.com/files/doc/fauna/ultrasphinx/files/README.html)
+
+[1]: https://github.com/bratta/ey-cloud-recipes/tree/master/cookbooks/sphinx
+[2]: https://github.com/damm/ey-cloud-recipes/tree/sphinx_test/cookbooks/sphinx
+[3]: https://github.com/damm/ey-tsphinx2

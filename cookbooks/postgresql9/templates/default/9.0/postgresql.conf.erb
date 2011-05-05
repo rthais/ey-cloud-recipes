@@ -21,11 +21,14 @@
 # take effect.
 #
 # Any parameter can also be given as a command-line option to the server, e.g.,
-# "postgres -c log_connections=on".  Some paramters can be changed at run time
+# "postgres -c log_connections=on".  Some parameters can be changed at run time
 # with the "SET" SQL command.
 #
-# Memory units:  kB = kilobytes MB = megabytes GB = gigabytes
-# Time units:    ms = milliseconds s = seconds min = minutes h = hours d = days
+# Memory units:  kB = kilobytes        Time units:  ms  = milliseconds
+#                MB = megabytes                     s   = seconds
+#                GB = gigabytes                     min = minutes
+#                                                   h   = hours
+#                                                   d   = days
 
 
 #------------------------------------------------------------------------------
@@ -43,8 +46,8 @@
 					# (change requires restart)
 
 # If external_pid_file is not explicitly set, no extra PID file is written.
-#external_pid_file = '(none)'		# write an extra PID file
-					# (change requires restart)
+external_pid_file = '/var/run/postgresql.pid' # write an extra PID file
+# (change requires restart)
 
 
 #------------------------------------------------------------------------------
@@ -53,21 +56,20 @@
 
 # - Connection Settings -
 
-listen_addresses = '*'
-
-#listen_addresses = 'localhost'		# what IP address(es) to listen on;
+listen_addresses = '*'		# what IP address(es) to listen on;
 					# comma-separated list of addresses;
 					# defaults to 'localhost', '*' = all
 					# (change requires restart)
-#port = 5432				# (change requires restart)
-max_connections = 100			# (change requires restart)
+port = 5432				# (change requires restart)
+max_connections = 512			# (change requires restart)
 # Note:  Increasing max_connections costs ~400 bytes of shared memory per 
-# connection slot, plus lock space (see max_locks_per_transaction).  You might
-# also need to raise shared_buffers to support more connections.
+# connection slot, plus lock space (see max_locks_per_transaction).
 #superuser_reserved_connections = 3	# (change requires restart)
 #unix_socket_directory = ''		# (change requires restart)
 #unix_socket_group = ''			# (change requires restart)
 #unix_socket_permissions = 0777		# begin with 0 to use octal notation
+					# (change requires restart)
+#bonjour = off				# advertise server via Bonjour
 					# (change requires restart)
 #bonjour_name = ''			# defaults to the computer name
 					# (change requires restart)
@@ -78,16 +80,14 @@ max_connections = 100			# (change requires restart)
 #ssl = off				# (change requires restart)
 #ssl_ciphers = 'ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH'	# allowed SSL ciphers
 					# (change requires restart)
+#ssl_renegotiation_limit = 512MB	# amount of data between renegotiations
 #password_encryption = on
 #db_user_namespace = off
 
 # Kerberos and GSSAPI
-#krb_server_keyfile = ''		# (change requires restart)
-#krb_srvname = 'postgres'		# (change requires restart, Kerberos only)
-#krb_server_hostname = ''		# empty string matches any keytab entry
-					# (change requires restart, Kerberos only)
-#krb_caseins_users = off		# (change requires restart)
-#krb_realm = ''           		# (change requires restart)
+#krb_server_keyfile = ''
+#krb_srvname = 'postgres'		# (Kerberos only)
+#krb_caseins_users = off
 
 # - TCP Keepalives -
 # see "man 7 tcp" for details
@@ -106,34 +106,28 @@ max_connections = 100			# (change requires restart)
 
 # - Memory -
 
-shared_buffers = 24MB			# min 128kB or max_connections*16kB
+shared_buffers = <%= @shared_buffers %>MB
 					# (change requires restart)
 #temp_buffers = 8MB			# min 800kB
-#max_prepared_transactions = 5		# can be 0 or more
+#max_prepared_transactions = 0		# zero disables the feature
 					# (change requires restart)
 # Note:  Increasing max_prepared_transactions costs ~600 bytes of shared memory
 # per transaction slot, plus lock space (see max_locks_per_transaction).
-#work_mem = 1MB				# min 64kB
-work_mem = 32MB				# min 64kB
-#maintenance_work_mem = 16MB		# min 1MB
-#max_stack_depth = 2MB			# min 100kB
-
-# - Free Space Map -
-
-max_fsm_pages     = 200000			# min max_fsm_relations*16, 6 bytes each
-					# (change requires restart)
-max_fsm_relations = 10000	 	 # min 100, ~70 bytes each
-					# (change requires restart)
+# It is not advisable to set max_prepared_transactions nonzero unless you
+# actively intend to use prepared transactions.
+work_mem = <%= @work_mem %>
+maintenance_work_mem = <%= @maintenance_work_mem %>
+max_stack_depth = <%= @max_stack_depth %>
 
 # - Kernel Resource Usage -
 
-#max_files_per_process = 1000		# min 25
+max_files_per_process = 65535
 					# (change requires restart)
 #shared_preload_libraries = ''		# (change requires restart)
 
 # - Cost-Based Vacuum Delay -
 
-#vacuum_cost_delay = 0			# 0-1000 milliseconds
+#vacuum_cost_delay = 0ms		# 0-100 milliseconds
 #vacuum_cost_page_hit = 1		# 0-10000 credits
 #vacuum_cost_page_miss = 10		# 0-10000 credits
 #vacuum_cost_page_dirty = 20		# 0-10000 credits
@@ -145,6 +139,10 @@ max_fsm_relations = 10000	 	 # min 100, ~70 bytes each
 #bgwriter_lru_maxpages = 100		# 0-1000 max buffers written/round
 #bgwriter_lru_multiplier = 2.0		# 0-10.0 multipler on buffers scanned/round
 
+# - Asynchronous Behavior -
+
+#effective_io_concurrency = 1		# 1-1000. 0 disables prefetching
+
 
 #------------------------------------------------------------------------------
 # WRITE AHEAD LOG
@@ -152,6 +150,7 @@ max_fsm_relations = 10000	 	 # min 100, ~70 bytes each
 
 # - Settings -
 
+wal_level = hot_standby # minimal			# minimal, archive, or hot_standby
 #fsync = on				# turns forced synchronization on or off
 #synchronous_commit = on		# immediate fsync at commit
 #wal_sync_method = fsync		# the default is the first option 
@@ -171,19 +170,35 @@ max_fsm_relations = 10000	 	 # min 100, ~70 bytes each
 
 # - Checkpoints -
 
-#checkpoint_segments = 3		# in logfile segments, min 1, 16MB each
-checkpoint_segments = 10		# in logfile segments, min 1, 16MB each
-#checkpoint_timeout = 5min		# range 30s-1h
+checkpoint_segments = <%= @checkpoint_segments %> 
+checkpoint_timeout = <%= @checkpoint_timeout %>
 #checkpoint_completion_target = 0.5	# checkpoint target duration, 0.0 - 1.0
-#checkpoint_warning = 30s		# 0 is off
+#checkpoint_warning = 30s		# 0 disables
 
 # - Archiving -
 
-#archive_mode = off		# allows archiving to be done
+archive_mode = on		# allows archiving to be done
 				# (change requires restart)
-#archive_command = ''		# command to use to archive a logfile segment
-#archive_timeout = 0		# force a logfile segment switch after this
-				# time; 0 is off
+archive_command = '/bin/true'		# command to use to archive a logfile segment
+archive_timeout = 60		# force a logfile segment switch after this
+				# number of seconds; 0 disables
+
+# - Streaming Replication -
+
+max_wal_senders = 5		# max number of walsender processes
+#wal_sender_delay = 200ms	# walsender cycle time, 1-10000 milliseconds
+wal_keep_segments = 128 		# in logfile segments, 16MB each; 0 disables
+#vacuum_defer_cleanup_age = 0	# number of xacts by which cleanup is delayed
+
+# - Standby Servers -
+
+hot_standby = <%= @hot_standby %>			# "on" allows queries during recovery
+#max_standby_archive_delay = 30s	# max delay before canceling queries
+					# when reading WAL from archive;
+					# -1 allows indefinite delay
+#max_standby_streaming_delay = 30s	# max delay before canceling queries
+					# when reading streaming WAL;
+					# -1 allows indefinite delay
 
 
 #------------------------------------------------------------------------------
@@ -196,6 +211,7 @@ checkpoint_segments = 10		# in logfile segments, min 1, 16MB each
 #enable_hashagg = on
 #enable_hashjoin = on
 #enable_indexscan = on
+#enable_material = on
 #enable_mergejoin = on
 #enable_nestloop = on
 #enable_seqscan = on
@@ -209,8 +225,7 @@ checkpoint_segments = 10		# in logfile segments, min 1, 16MB each
 #cpu_tuple_cost = 0.01			# same scale as above
 #cpu_index_tuple_cost = 0.005		# same scale as above
 #cpu_operator_cost = 0.0025		# same scale as above
-#effective_cache_size = 128MB
-effective_cache_size = 1280MB
+effective_cache_size = <%= @effective_cache_size %>MB
 
 # - Genetic Query Optimizer -
 
@@ -220,12 +235,13 @@ effective_cache_size = 1280MB
 #geqo_pool_size = 0			# selects default based on effort
 #geqo_generations = 0			# selects default based on effort
 #geqo_selection_bias = 2.0		# range 1.5-2.0
+#geqo_seed = 0.0			# range 0.0-1.0
 
 # - Other Planner Options -
 
-#default_statistics_target = 10		# range 1-1000
-default_statistics_target = 100		# range 1-1000
-#constraint_exclusion = off
+default_statistics_target = <%= @default_statistics_target %>
+#constraint_exclusion = partition	# on, off, or partition
+#cursor_tuple_fraction = 0.1		# range 0.0-1.0
 #from_collapse_limit = 8
 #join_collapse_limit = 8		# 1 disables collapsing of explicit 
 					# JOIN clauses
@@ -237,20 +253,19 @@ default_statistics_target = 100		# range 1-1000
 
 # - Where to Log -
 
-#log_destination = 'stderr'		# Valid values are combinations of
-					# stderr, csvlog, syslog and eventlog,
+log_destination = 'csvlog'		# Valid values are combinations of
+					# stderr, csvlog, syslog, and eventlog,
 					# depending on platform.  csvlog
 					# requires logging_collector to be on.
 
 # This is used when logging to stderr:
-#logging_collector = off		# Enable capturing of stderr and csvlog
+logging_collector =  <%= @logging_collector %> 
 					# into log files. Required to be on for
 					# csvlogs.
 					# (change requires restart)
-logging_collector = on # Enable capturing of stderr and csvlog
 
 # These are only used if logging_collector is on:
-#log_directory = 'pg_log'		# directory where log files are written,
+log_directory = 'pg_log'		# directory where log files are written,
 					# can be absolute or relative to PGDATA
 #log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'	# log file name pattern,
 					# can include strftime() escapes
@@ -262,15 +277,20 @@ logging_collector = on # Enable capturing of stderr and csvlog
 					# or size-driven rotation.  Default is
 					# off, meaning append to existing files
 					# in all cases.
-log_rotation_age = 7d			# Automatic rotation of logfiles will
+log_rotation_age = <%= @log_rotation_age %>
 					# happen after that time.  0 to disable.
-log_rotation_size = 128MB		# Automatic rotation of logfiles will 
+log_rotation_size = <%= @log_rotation_size %>
 					# happen after that much log output.
-					# 0 to disable.
+					# 0 disables.
 
 # These are relevant when logging to syslog:
 #syslog_facility = 'LOCAL0'
 #syslog_ident = 'postgres'
+
+#silent_mode = off			# Run server silently.
+					# DO NOT USE without syslog or
+					# logging_collector
+					# (change requires restart)
 
 
 # - When to Log -
@@ -286,7 +306,7 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 					#   warning
 					#   error
 
-#log_min_messages = notice		# values in order of decreasing detail:
+#log_min_messages = warning		# values in order of decreasing detail:
 					#   debug5
 					#   debug4
 					#   debug3
@@ -299,8 +319,6 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 					#   log
 					#   fatal
 					#   panic
-
-#log_error_verbosity = default		# terse, default, or verbose messages
 
 #log_min_error_statement = error	# values in order of decreasing detail:
 				 	#   debug5
@@ -316,26 +334,26 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 					#   fatal
 					#   panic (effectively off)
 
-#log_min_duration_statement = -1	# -1 is disabled, 0 logs all statements
+log_min_duration_statement = 2000	# -1 is disabled, 0 logs all statements
 					# and their durations, > 0 logs only
-					# statements running at least this time.
+					# statements running at least this number
+					# of milliseconds
 
-#silent_mode = off			# DO NOT USE without syslog or
-					# logging_collector
-					# (change requires restart)
 
 # - What to Log -
 
 #debug_print_parse = off
 #debug_print_rewritten = off
 #debug_print_plan = off
-#debug_pretty_print = off
+#debug_pretty_print = on
 #log_checkpoints = off
 #log_connections = off
 #log_disconnections = off
-#log_duration = off
+log_duration = on
+#log_error_verbosity = default		# terse, default, or verbose messages
 #log_hostname = off
-#log_line_prefix = ''			# special values:
+log_line_prefix = '%m: user=%u,db=%d '			# special values:
+					#   %a = application name
 					#   %u = user name
 					#   %d = database name
 					#   %r = remote host and port
@@ -344,6 +362,7 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 					#   %t = timestamp without milliseconds
 					#   %m = timestamp with milliseconds
 					#   %i = command tag
+					#   %e = SQL state
 					#   %c = session ID
 					#   %l = session line number
 					#   %s = session start timestamp
@@ -352,11 +371,10 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 					#   %q = stop here in non-session
 					#        processes
 					#   %% = '%'
-					# e.g. '<%u%%%d> '
 #log_lock_waits = off			# log lock waits >= deadlock_timeout
 #log_statement = 'none'			# none, ddl, mod, all
 #log_temp_files = -1			# log temporary files equal or larger
-					# than specified size;
+					# than the specified size in kilobytes;
 					# -1 disables, 0 logs all temp files
 #log_timezone = unknown			# actually, defaults to TZ environment
 					# setting
@@ -370,7 +388,10 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 
 #track_activities = on
 #track_counts = on
+#track_functions = none			# none, pl, all
+#track_activity_query_size = 1024
 #update_process_title = on
+#stats_temp_directory = 'pg_stat_tmp'
 
 
 # - Statistics Monitoring -
@@ -389,7 +410,8 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 					# requires track_counts to also be on.
 #log_autovacuum_min_duration = -1	# -1 disables, 0 logs all actions and
 					# their durations, > 0 logs only
-					# actions running at least that time.
+					# actions running at least this number
+					# of milliseconds.
 #autovacuum_max_workers = 3		# max number of autovacuum subprocesses
 #autovacuum_naptime = 1min		# time between autovacuum runs
 #autovacuum_vacuum_threshold = 50	# min number of row updates before
@@ -400,9 +422,9 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 #autovacuum_analyze_scale_factor = 0.1	# fraction of table size before analyze
 #autovacuum_freeze_max_age = 200000000	# maximum XID age before forced vacuum
 					# (change requires restart)
-#autovacuum_vacuum_cost_delay = 20	# default vacuum cost delay for
-					# autovacuum, -1 means use
-					# vacuum_cost_delay
+#autovacuum_vacuum_cost_delay = 20ms	# default vacuum cost delay for
+					# autovacuum, in milliseconds;
+					# -1 means use vacuum_cost_delay
 #autovacuum_vacuum_cost_limit = -1	# default vacuum cost limit for
 					# autovacuum, -1 means use
 					# vacuum_cost_limit
@@ -422,14 +444,17 @@ log_rotation_size = 128MB		# Automatic rotation of logfiles will
 #default_transaction_isolation = 'read committed'
 #default_transaction_read_only = off
 #session_replication_role = 'origin'
-#statement_timeout = 0			# 0 is disabled
-#vacuum_freeze_min_age = 100000000
+#statement_timeout = 0			# in milliseconds, 0 is disabled
+#vacuum_freeze_min_age = 50000000
+#vacuum_freeze_table_age = 150000000
+#bytea_output = 'hex'			# hex, escape
 #xmlbinary = 'base64'
 #xmloption = 'content'
 
 # - Locale and Formatting -
 
 datestyle = 'iso, mdy'
+#intervalstyle = 'postgres'
 #timezone = unknown			# actually, defaults to TZ environment
 					# setting
 #timezone_abbreviations = 'Default'     # Select the set of available time zone
@@ -439,7 +464,7 @@ datestyle = 'iso, mdy'
 					#   India
 					# You can create your own file in
 					# share/timezonesets/.
-#extra_float_digits = 0			# min -15, max 2
+#extra_float_digits = 0			# min -15, max 3
 #client_encoding = sql_ascii		# actually, defaults to database
 					# encoding
 
@@ -455,7 +480,6 @@ default_text_search_config = 'pg_catalog.english'
 
 # - Other Defaults -
 
-#explain_pretty_print = on
 #dynamic_library_path = '$libdir'
 #local_preload_libraries = ''
 
@@ -478,12 +502,11 @@ default_text_search_config = 'pg_catalog.english'
 
 # - Previous PostgreSQL Versions -
 
-#add_missing_from = off
 #array_nulls = on
 #backslash_quote = safe_encoding	# on, off, or safe_encoding
 #default_with_oids = off
 #escape_string_warning = on
-#regex_flavor = advanced		# advanced, extended, or basic
+#lo_compat_privileges = off
 #sql_inheritance = on
 #standard_conforming_strings = off
 #synchronize_seqscans = on
@@ -498,3 +521,4 @@ default_text_search_config = 'pg_catalog.english'
 #------------------------------------------------------------------------------
 
 #custom_variable_classes = ''		# list of custom variable class names
+include '<%= @postgres_root %>/<%= @postgres_version %>/custom.conf'
