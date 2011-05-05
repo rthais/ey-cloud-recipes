@@ -28,9 +28,6 @@
 #uncomment to run the ssmtp recipe
 #require_recipe "ssmtp"
 
-#uncomment to run the mongodb recipe
-# require_recipe "mongodb"
-
 #uncomment to run the sunspot recipe
 #require_recipe "sunspot"
 
@@ -67,6 +64,11 @@
 #uncomment to include the mysql_replication_check recipe
 #require_recipe "mysql_replication_check"
 
+
 require_recipe "databaseyml"
 
 require_recipe "delayed_job_alternate"
+
+#uncomment to include the mysql_administrative_tools recipe
+# additional configuration of this recipe is required
+#require_recipe "mysql_administrative_tools"
